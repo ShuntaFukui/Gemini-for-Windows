@@ -88,3 +88,35 @@ class GeminiClient:
             return response.text
         except Exception as e:
             return f"エラーが発生しました: {str(e)}"
+    
+    def generate_chat_title(self, first_message: str) -> str:
+        """
+        チャットの最初のメッセージから簡潔なタイトルを生成
+        
+        Args:
+            first_message: チャットの最初のユーザーメッセージ
+            
+        Returns:
+            生成されたタイトル（最大30文字程度）
+        """
+        try:
+            prompt = f"""以下のメッセージの内容を表す簡潔なタイトルを生成してください。
+
+要件:
+- 最大20文字以内
+- 内容の核心を捉える
+- タイトルのみを出力（説明や前置きは不要）
+
+メッセージ: {first_message}
+
+タイトル:"""
+            response = self.model.generate_content(prompt)
+            title = response.text.strip()
+            # 余分な改行や引用符を削除
+            title = title.replace('\n', '').replace('"', '').replace("'", '')
+            # 長すぎる場合は切り詰め
+            if len(title) > 30:
+                title = title[:27] + "..."
+            return title if title else "新しいチャット"
+        except Exception as e:
+            return "新しいチャット"

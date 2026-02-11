@@ -73,6 +73,11 @@ class ChatManager:
         # チャット履歴を取得
         chat_history = self.db.get_messages(chat_id)
         
+        # 最初のメッセージの場合、タイトルを自動生成
+        if len(chat_history) == 1:  # ユーザーメッセージのみ
+            title = self.gemini.generate_chat_title(user_message)
+            self.db.update_conversation_title(chat_id, title)
+        
         # Gemini APIでレスポンスを生成
         response = self.gemini.generate_chat_response(chat_history[:-1], user_message)
         

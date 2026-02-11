@@ -338,8 +338,8 @@ class MainWindow(QMainWindow):
         layout.addSpacing(8)
         
         # 新しいチャットボタン
-        new_chat_btn = QPushButton("+ 新しいチャット")
-        new_chat_btn.setStyleSheet("""
+        self.new_chat_btn = QPushButton("+ 新しいチャット")
+        self.new_chat_btn.setStyleSheet("""
             QPushButton {
                 background-color: #afeeee;
                 color: #666;
@@ -355,9 +355,13 @@ class MainWindow(QMainWindow):
             QPushButton:pressed {
                 background-color: #add8e6;
             }
+            QPushButton:disabled {
+                background-color: #e0e0e0;
+                color: #999;
+            }
         """)
-        new_chat_btn.clicked.connect(self.create_new_chat)
-        layout.addWidget(new_chat_btn)
+        self.new_chat_btn.clicked.connect(self.create_new_chat)
+        layout.addWidget(self.new_chat_btn)
         
         # チャットリスト
         self.chat_list = QListWidget()
@@ -461,6 +465,19 @@ class MainWindow(QMainWindow):
             item = self.chat_list.item(self.chat_list.count() - 1)
             item.setData(Qt.ItemDataRole.UserRole, chat["id"])
     
+    def _refresh_chat_list(self):
+        """チャットリストを更新（現在の選択を維持）"""
+        current_id = self.current_chat_id
+        self._load_chats()
+        
+        # 現在のチャットを再選択
+        if current_id:
+            for i in range(self.chat_list.count()):
+                item = self.chat_list.item(i)
+                if item.data(Qt.ItemDataRole.UserRole) == current_id:
+                    self.chat_list.setCurrentItem(item)
+                    break
+    
     def _on_chat_selected(self, item):
         """チャットが選択された時の処理"""
         # 応答待機中はチャット切り替えを禁止
@@ -548,6 +565,9 @@ class MainWindow(QMainWindow):
         
         # 送信中は入力を無効化
         self.message_input.setEnabled(False)
+        # チャット切り替えと新規作成を禁止
+        self.chat_list.setEnabled(False)
+        self.new_chat_btn.setEnabled(False)
         
         # 入力欄をクリア
         self.message_input.clear()
@@ -609,6 +629,12 @@ class MainWindow(QMainWindow):
         
         # Geminiのレスポンスを画面に追加
         self._append_message_to_display("assistant", response, is_markdown=True)
+        
+        # チャットリストを更新（タイトルが変更された可能性があるため）
+        self._refresh_chat_list()
+        
+        # UIを再度有効化
+        self._enable_ui()
     
     def _on_error_occurred(self, chat_id: int, error: str):
         """エラー発生時の処理"""
@@ -622,15 +648,20 @@ class MainWindow(QMainWindow):
         # エラーメッセージを表示
         error_message = f"エラーが発生しました: {error}"
         self._append_message_to_display("assistant", error_message, is_markdown=False)
+        
+        # UIを再度有効化
+        self._enable_ui()
+        
+        # UIを再度有効化
+        self._enable_ui()
     
     def _on_worker_finished(self):
         """ワーカースレッド終了時の処理"""
         # sender()で現在のワーカーか確認
         sender = self.sender()
         if sender == self.worker:
-            # 入力欄を再度有効化
-            self.message_input.setEnabled(True)
-            self.message_input.setFocus()
+            # UIを再度有効化
+            self._enable_ui()
             
             # ワーカースレッドのクリーンアップ
             if self.worker:  # Noneチェック追加
@@ -639,6 +670,13 @@ class MainWindow(QMainWindow):
         elif sender:
             # キャンセルされた古いワーカー
             sender.deleteLater()
+    
+    def _enable_ui(self):
+        """入力欄、チャットリスト、新規チャットボタンを有効化"""
+        self.message_input.setEnabled(True)
+        self.message_input.setFocus()
+        self.chat_list.setEnabled(True)
+        self.new_chat_btn.setEnabled(True)
     
     def _stop_loading_animation(self):
         """ローディングアニメーションを停止"""
