@@ -1,0 +1,24 @@
+{
+  "app": {
+    "name": "Gemini Chat",
+    "version": "1.0.0",
+    "window": {
+      "width": 800,
+      "height": 600,
+      "min_width": 600,
+      "min_height": 400
+    }
+  },
+  "gemini": {
+    "model": "gemini-2.5-flash",
+    "temperature": 0.7,
+    "max_tokens": 2048
+  },
+  "database": {
+    "path": "data/chats.db"
+  },
+  "ui": {
+    "theme": "light",
+    "font_size": 12
+  }
+}

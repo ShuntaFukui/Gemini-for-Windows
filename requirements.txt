@@ -1,0 +1,22 @@
+# Core Dependencies
+PyQt6==6.6.1
+PyQt6-Qt6==6.6.1
+PyQt6-sip==13.6.0
+
+# Gemini API
+google-generativeai==0.3.2
+
+# Database
+# SQLite is included in Python standard library
+
+# Configuration
+python-dotenv==1.0.0
+
+# Encryption for API key storage
+cryptography==42.0.0
+
+# Utilities
+requests==2.31.0
+
+# Markdown rendering
+markdown==3.5.1
