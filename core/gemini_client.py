@@ -2,7 +2,7 @@
 Gemini APIクライアントモジュール
 """
 import google.generativeai as genai
-from typing import Optional, Generator
+from typing import Optional, Generator, Union
 
 
 class GeminiClient:
@@ -25,7 +25,7 @@ class GeminiClient:
         genai.configure(api_key=self.api_key)
         self.model = genai.GenerativeModel(self.model_name)
     
-    def generate_response(self, prompt: str, stream: bool = False) -> str:
+    def generate_response(self, prompt: str, stream: bool = False) -> Union[str, Generator[str, None, None]]:
         """
         レスポンスを生成
         
@@ -34,7 +34,7 @@ class GeminiClient:
             stream: ストリーミングモードを使用するかどうか
             
         Returns:
-            生成されたレスポンス
+            生成されたレスポンス（ストリーミング時はGenerator）
         """
         try:
             if stream:

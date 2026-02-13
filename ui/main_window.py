@@ -19,11 +19,11 @@ class GeminiWorker(QThread):
     """Gemini API呼び出し用のワーカースレッド"""
     
     # レスポンス受信時のシグナル（chat_idも含める）
-    response_received = pyqtSignal(int, str)
+    response_received = pyqtSignal(str, str)
     # エラー発生時のシグナル（chat_idも含める）
-    error_occurred = pyqtSignal(int, str)
+    error_occurred = pyqtSignal(str, str)
     
-    def __init__(self, chat_manager, chat_id: int, message: str):
+    def __init__(self, chat_manager, chat_id: str, message: str):
         super().__init__()
         self.chat_manager = chat_manager
         self.chat_id = chat_id
@@ -73,7 +73,10 @@ class MultiLineInput(QPlainTextEdit):
     def _adjust_height(self):
         """テキストの行数に応じて高さを調整"""
         # 実際の行数を取得
-        line_count = self.document().blockCount()
+        doc = self.document()
+        if not doc:
+            return
+        line_count = doc.blockCount()
         
         # 空の場合は1行として扱う
         if line_count == 0:
@@ -88,7 +91,9 @@ class MultiLineInput(QPlainTextEdit):
         
         # 5行を超えた場合はスクロールバーを表示
         if line_count > 5:
-            self.verticalScrollBar().setValue(self.verticalScrollBar().maximum())
+            scrollbar = self.verticalScrollBar()
+            if scrollbar:
+                scrollbar.setValue(scrollbar.maximum())
     
     def keyPressEvent(self, event: QKeyEvent):
         """キーイベントの処理"""
@@ -128,7 +133,7 @@ class MainWindow(QMainWindow):
         self.chat_manager = ChatManager(self.db, self.gemini)
         
         # 現在のチャットID
-        self.current_chat_id = None
+        self.current_chat_id: str | None = None
         
         # サイドバーの表示状態
         self.sidebar_visible = False
@@ -324,7 +329,9 @@ class MainWindow(QMainWindow):
                 width = fm.boundingRect(text).width()
             max_width = max(max_width, width)
         # パディング、マージン、スクロールバー用のスペースを十分に追加
-        self.model_combo.view().setMinimumWidth(max_width + 60)
+        view = self.model_combo.view()
+        if view:
+            view.setMinimumWidth(max_width + 60)
         
         # 現在のモデルを選択
         current_model = self.config.get("gemini.model")
@@ -463,7 +470,8 @@ class MainWindow(QMainWindow):
             self.chat_list.addItem(chat["title"])
             # チャットIDをアイテムのデータとして保存
             item = self.chat_list.item(self.chat_list.count() - 1)
-            item.setData(Qt.ItemDataRole.UserRole, chat["id"])
+            if item:
+                item.setData(Qt.ItemDataRole.UserRole, chat["id"])
     
     def _refresh_chat_list(self):
         """チャットリストを更新（現在の選択を維持）"""
@@ -474,7 +482,7 @@ class MainWindow(QMainWindow):
         if current_id:
             for i in range(self.chat_list.count()):
                 item = self.chat_list.item(i)
-                if item.data(Qt.ItemDataRole.UserRole) == current_id:
+                if item and item.data(Qt.ItemDataRole.UserRole) == current_id:
                     self.chat_list.setCurrentItem(item)
                     break
     
@@ -485,7 +493,7 @@ class MainWindow(QMainWindow):
             # 前のチャットに戻す
             for i in range(self.chat_list.count()):
                 list_item = self.chat_list.item(i)
-                if list_item.data(Qt.ItemDataRole.UserRole) == self.current_chat_id:
+                if list_item and list_item.data(Qt.ItemDataRole.UserRole) == self.current_chat_id:
                     self.chat_list.setCurrentItem(list_item)
                     break
             return
@@ -578,7 +586,9 @@ class MainWindow(QMainWindow):
         # ローディング表示を追加
         self._show_loading()
         
-        # ワーカースレッドでAPIを呼び出し
+        # ワーカースレッドでAPIを呼び出し（current_chat_idは必ず存在する）
+        if self.current_chat_id is None:
+            return
         self.worker = GeminiWorker(self.chat_manager, self.current_chat_id, message)
         self.worker.response_received.connect(self._on_response_received)
         self.worker.error_occurred.connect(self._on_error_occurred)
@@ -618,7 +628,7 @@ class MainWindow(QMainWindow):
             self.messages_html[self.loading_message_index] = loading_html
             self._render_messages()
     
-    def _on_response_received(self, chat_id: int, response: str):
+    def _on_response_received(self, chat_id: str, response: str):
         """レスポンス受信時の処理"""
         # 現在のチャットIDと一致しない場合は無視
         if chat_id != self.current_chat_id:
@@ -636,7 +646,7 @@ class MainWindow(QMainWindow):
         # UIを再度有効化
         self._enable_ui()
     
-    def _on_error_occurred(self, chat_id: int, error: str):
+    def _on_error_occurred(self, chat_id: str, error: str):
         """エラー発生時の処理"""
         # 現在のチャットIDと一致しない場合は無視
         if chat_id != self.current_chat_id:
@@ -765,12 +775,12 @@ ul, ol {{ padding-left: 20px !important; }}
 """
         
         # デバッグ用：HTMLをファイルに出力
-        try:
-            with open('debug_output.html', 'w', encoding='utf-8') as f:
-                f.write(full_html)
-            print(f"HTMLを debug_output.html に出力しました。メッセージ数: {len(self.messages_html)}")
-        except Exception as e:
-            print(f"HTML出力エラー: {e}")
+        # try:
+        #     with open('debug_output.html', 'w', encoding='utf-8') as f:
+        #         f.write(full_html)
+        #     print(f"HTMLを debug_output.html に出力しました。メッセージ数: {len(self.messages_html)}")
+        # except Exception as e:
+        #     print(f"HTML出力エラー: {e}")
         
         # HTMLを設定
         self.chat_display.setHtml(full_html)

@@ -25,7 +25,11 @@ class TrayIcon(QSystemTrayIcon):
             icon = QIcon(icon_path)
         else:
             # アイコンファイルが存在しない場合はデフォルトアイコンを使用
-            icon = QApplication.style().standardIcon(QApplication.style().StandardPixmap.SP_MessageBoxInformation)
+            style = QApplication.style()
+            if style:
+                icon = style.standardIcon(style.StandardPixmap.SP_MessageBoxInformation)
+            else:
+                icon = QIcon()
         
         self.setIcon(icon)
         
